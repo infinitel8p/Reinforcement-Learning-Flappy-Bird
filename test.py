@@ -1,3 +1,5 @@
+import os
+import time
 import flappy_bird_gymnasium
 import matplotlib.pyplot as plt
 import gymnasium
@@ -53,11 +55,17 @@ def epsilon_greedy_action(state, q_network, epsilon, action_space):
         return torch.argmax(q_values).item()  # Exploit
 
 
-# Initialize environment
-env = gymnasium.make("FlappyBird-v0", render_mode="human", use_lidar=True)
+# Create save directory if it doesn't exist
+save_dir = "savefile"
+os.makedirs(save_dir, exist_ok=True)
 
-# Reward history
+# Initialize environment
+# render_mode="human" for visualization
+env = gymnasium.make("FlappyBird-v0", render_mode=None, use_lidar=True)
+
+# Reward history and stats
 reward_history = []
+episode_stats = {"max_reward": [], "average_reward": []}
 
 # Parameters
 state_space = env.observation_space.shape[0]
@@ -75,7 +83,7 @@ loss_fn = nn.MSELoss()
 
 # Hyperparameters
 num_episodes = 500
-batch_size = 128  # ! Changed batch size from 64 to 128
+batch_size = 64
 gamma = 0.99  # Discount factor
 epsilon = 1.0
 epsilon_decay = 0.995
@@ -84,14 +92,15 @@ update_target_steps = 50  # ! Changed update target steps from 100 to 50
 
 # Load previous model if it exists
 try:
-    q_network.load_state_dict(torch.load("flappy_dqn.pth"))
+    q_network.load_state_dict(torch.load(
+        os.path.join(save_dir, "flappy_dqn.pth")))
     print("Loaded existing model weights.")
 except FileNotFoundError:
     print("No previous model found, starting fresh.")
 
 # Load reward history if it exists
 try:
-    with open("reward_history.pkl", "rb") as f:
+    with open(os.path.join(save_dir, "reward_history.pkl"), "rb") as f:
         reward_history = pickle.load(f)
         print("Loaded existing reward history.")
 except FileNotFoundError:
@@ -99,10 +108,11 @@ except FileNotFoundError:
 
 # Load epsilon value if it exists
 try:
-    with open("epsilon.pkl", "rb") as f:
+    with open(os.path.join(save_dir, "epsilon.pkl"), "rb") as f:
         epsilon = pickle.load(f)
         print(f"Loaded previous epsilon: {epsilon}")
 except FileNotFoundError:
+    epsilon = 1.0  # Default epsilon
     print("No previous epsilon found, starting fresh.")
 
 try:
@@ -163,35 +173,47 @@ try:
         if episode % update_target_steps == 0:
             target_network.load_state_dict(q_network.state_dict())
 
+        # Track rewards and stats
+        reward_history.append(total_reward)
+        episode_stats["max_reward"].append(max(reward_history))
+        episode_stats["average_reward"].append(np.mean(reward_history))
+
         # Save periodically
         if episode % 50 == 0:
-            torch.save(q_network.state_dict(), "flappy_dqn.pth")
-            with open("reward_history.pkl", "wb") as f:
+            torch.save(q_network.state_dict(), os.path.join(
+                save_dir, "flappy_dqn.pth"))
+            with open(os.path.join(save_dir, "reward_history.pkl"), "wb") as f:
                 pickle.dump(reward_history, f)
-            with open("epsilon.pkl", "wb") as f:
+            with open(os.path.join(save_dir, "epsilon.pkl"), "wb") as f:
                 pickle.dump(epsilon, f)
+            with open(os.path.join(save_dir, "episode_stats.pkl"), "wb") as f:
+                pickle.dump(episode_stats, f)
+
             print(
-                f"Saved model, reward history, and epsilon at episode {episode}.")
+                f"Saved model, reward history and epsilon at episode {episode}.")
 
         print(f"Episode {episode}, Epsilon: {
               epsilon:.2f}, Total Reward: {total_reward:.2f}")
-        reward_history.append(total_reward)
 
 finally:
     env.close()
     print("Environment closed.")
 
 # Final save
-torch.save(q_network.state_dict(), "flappy_dqn.pth")
-with open("reward_history.pkl", "wb") as f:
+torch.save(q_network.state_dict(), os.path.join(save_dir, "flappy_dqn.pth"))
+with open(os.path.join(save_dir, "reward_history.pkl"), "wb") as f:
     pickle.dump(reward_history, f)
-with open("epsilon.pkl", "wb") as f:
+with open(os.path.join(save_dir, "epsilon.pkl"), "wb") as f:
     pickle.dump(epsilon, f)
-print("Final model, epsilon and reward history saved.")
+with open(os.path.join(save_dir, "episode_stats.pkl"), "wb") as f:
+    pickle.dump(episode_stats, f)
+print("Final model, epsilon, reward history, and stats saved.")
 
-# Plot rewards
+# Plot final rewards
 plt.plot(reward_history)
 plt.xlabel("Episode")
 plt.ylabel("Total Reward")
 plt.title("Training Progress")
+plt.savefig(os.path.join(save_dir, f"final_plot_{
+            time.strftime('%H:%M:%S-%d.%m.%Y')}.png"))
 plt.show()
