@@ -1,5 +1,9 @@
-Start the virtual environment with:
+Create a virtual environment with:
+```bash
+python -m venv venv
+```
 
+Start the virtual environment with:  
 On Linux/MacOS:
 ```bash
 source venv/bin/activate
