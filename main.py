@@ -60,7 +60,7 @@ save_dir = "savefile"
 os.makedirs(save_dir, exist_ok=True)
 
 # Initialize environment
-# render_mode="human" for visualization
+# render_mode="human" for visualization, None for faster training
 env = gymnasium.make("FlappyBird-v0", render_mode=None, use_lidar=True)
 
 # Reward history and stats
@@ -78,12 +78,12 @@ target_network.load_state_dict(q_network.state_dict())  # Sync weights
 replay_buffer = ReplayBuffer()
 
 # ! Changed learning rate from 0.001 to 0.005
-optimizer = optim.Adam(q_network.parameters(), lr=0.005)
-loss_fn = nn.MSELoss()
+optimizer = optim.Adam(q_network.parameters(), lr=0.001, weight_decay=0.01)
+loss_fn = nn.SmoothL1Loss()
 
 # Hyperparameters
 num_episodes = 500
-batch_size = 64
+batch_size = 128
 gamma = 0.99  # Discount factor
 epsilon = 1.0
 epsilon_decay = 0.995
@@ -92,33 +92,31 @@ update_target_steps = 50  # ! Changed update target steps from 100 to 50
 
 # Load previous model if it exists
 try:
-    q_network.load_state_dict(torch.load(
-        os.path.join(save_dir, "flappy_dqn.pth")))
-    print("Loaded existing model weights.")
-except FileNotFoundError:
-    print("No previous model found, starting fresh.")
+    with open(os.path.join(save_dir, "training_state.pkl"), "rb") as f:
+        training_state = pickle.load(f)
 
-# Load reward history if it exists
-try:
-    with open(os.path.join(save_dir, "reward_history.pkl"), "rb") as f:
-        reward_history = pickle.load(f)
-        print("Loaded existing reward history.")
-except FileNotFoundError:
-    print("No previous reward history found, starting fresh.")
+    # Restore the data
+    q_network.load_state_dict(training_state["q_network_state_dict"])
+    reward_history = training_state["reward_history"]
+    epsilon = training_state["epsilon"]
+    start_episode = training_state["episode_counter"]
+    episode_stats = training_state["episode_stats"]
 
-# Load epsilon value if it exists
-try:
-    with open(os.path.join(save_dir, "epsilon.pkl"), "rb") as f:
-        epsilon = pickle.load(f)
-        print(f"Loaded previous epsilon: {epsilon}")
+    print(f"Loaded training state from episode {start_episode}.")
 except FileNotFoundError:
-    epsilon = 1.0  # Default epsilon
-    print("No previous epsilon found, starting fresh.")
+    # Default initialization if no saved state exists
+    print("No training state file found, starting fresh.")
+    start_episode = 0
+    reward_history = []
+    epsilon = 1.0
+    episode_stats = {"max_reward": [], "average_reward": []}
 
 try:
-    for episode in range(num_episodes):
+    for episode in range(start_episode, num_episodes+start_episode):
         state, _ = env.reset()
         state = np.array(state, dtype=np.float32)
+        state = np.clip(state, env.observation_space.low,
+                        env.observation_space.high)
         done = False
         total_reward = 0
 
@@ -129,7 +127,11 @@ try:
 
             # Take action and observe result
             next_state, reward, terminated, _, info = env.step(action)
+
+            # Convert next_state to float32 and clip it to observation_space bounds
             next_state = np.array(next_state, dtype=np.float32)
+            next_state = np.clip(
+                next_state, env.observation_space.low, env.observation_space.high)
 
             # Add experience to replay buffer
             replay_buffer.add((state, action, reward, next_state, terminated))
@@ -144,10 +146,12 @@ try:
                 batch = replay_buffer.sample(batch_size)
                 states, actions, rewards, next_states, dones = zip(*batch)
 
-                states = torch.tensor(states, dtype=torch.float32)
+                states = np.array(states, dtype=np.float32)
+                states = torch.tensor(states)
                 actions = torch.tensor(actions, dtype=torch.int64)
                 rewards = torch.tensor(rewards, dtype=torch.float32)
-                next_states = torch.tensor(next_states, dtype=torch.float32)
+                next_states = np.array(next_states, dtype=np.float32)
+                next_states = torch.tensor(next_states)
                 dones = torch.tensor(dones, dtype=torch.float32)
 
                 # Q-learning target
@@ -180,17 +184,22 @@ try:
 
         # Save periodically
         if episode % 50 == 0:
-            torch.save(q_network.state_dict(), os.path.join(
-                save_dir, "flappy_dqn.pth"))
-            with open(os.path.join(save_dir, "reward_history.pkl"), "wb") as f:
-                pickle.dump(reward_history, f)
-            with open(os.path.join(save_dir, "epsilon.pkl"), "wb") as f:
-                pickle.dump(epsilon, f)
-            with open(os.path.join(save_dir, "episode_stats.pkl"), "wb") as f:
-                pickle.dump(episode_stats, f)
+            training_state = {
+                "q_network_state_dict": q_network.state_dict(),
+                "reward_history": reward_history,
+                "epsilon": epsilon,
+                "episode_counter": episode + 1,  # Save the next episode
+                "episode_stats": episode_stats,
+            }
 
-            print(
-                f"Saved model, reward history and epsilon at episode {episode}.")
+            with open(os.path.join(save_dir, "training_state.pkl"), "wb") as f:
+                pickle.dump(training_state, f)
+
+            print(f"Saved training state at episode {episode}.")
+
+        if episode % 10 == 0:
+            avg_reward = np.mean(reward_history[-10:])
+            print(f"Episode {episode}, Avg Reward (last 10): {avg_reward:.2f}")
 
         print(f"Episode {episode}, Epsilon: {
               epsilon:.2f}, Total Reward: {total_reward:.2f}")
@@ -200,20 +209,42 @@ finally:
     print("Environment closed.")
 
 # Final save
-torch.save(q_network.state_dict(), os.path.join(save_dir, "flappy_dqn.pth"))
-with open(os.path.join(save_dir, "reward_history.pkl"), "wb") as f:
-    pickle.dump(reward_history, f)
-with open(os.path.join(save_dir, "epsilon.pkl"), "wb") as f:
-    pickle.dump(epsilon, f)
-with open(os.path.join(save_dir, "episode_stats.pkl"), "wb") as f:
-    pickle.dump(episode_stats, f)
-print("Final model, epsilon, reward history, and stats saved.")
+training_state = {
+    "q_network_state_dict": q_network.state_dict(),
+    "reward_history": reward_history,
+    "epsilon": epsilon,
+    "episode_counter": episode + 1,
+    "episode_stats": episode_stats,
+}
 
-# Plot final rewards
-plt.plot(reward_history)
+with open(os.path.join(save_dir, "training_state.pkl"), "wb") as f:
+    pickle.dump(training_state, f)
+
+print(f"Saved final training state at episode {episode + 1}.")
+
+
+def moving_average(data, window_size=10):
+    """Smoothing function
+
+    Args:
+        data (list): List of data points
+        window_size (int, optional): Size of the window. Defaults to 10.
+
+    Returns:
+        list: Smoothed data
+    """
+    return np.convolve(data, np.ones(window_size)/window_size, mode='valid')
+
+
+# Plotting the training progress
+smoothed_rewards = moving_average(reward_history, window_size=10)
+plt.plot(reward_history, label="Raw Rewards")
+plt.plot(range(len(smoothed_rewards)),
+         smoothed_rewards, label="Smoothed Rewards")
+plt.legend()
 plt.xlabel("Episode")
 plt.ylabel("Total Reward")
 plt.title("Training Progress")
-plt.savefig(os.path.join(save_dir, f"final_plot_{
-            time.strftime('%H:%M:%S-%d.%m.%Y')}.png"))
+plt.savefig(os.path.join(save_dir, f"final_plot_smoothed_{
+            time.strftime('%H-%M-%S-%d.%m.%Y')}.png"))
 plt.show()
