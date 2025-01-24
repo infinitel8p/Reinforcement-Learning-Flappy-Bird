@@ -61,7 +61,7 @@ os.makedirs(save_dir, exist_ok=True)
 
 # Initialize environment
 # render_mode="human" for visualization, None for faster training
-env = gymnasium.make("FlappyBird-v0", render_mode=None, use_lidar=True)
+env = gymnasium.make("FlappyBird-v0", render_mode=None, use_lidar=False)
 
 # Reward history and stats
 reward_history = []
@@ -77,13 +77,12 @@ target_network.load_state_dict(q_network.state_dict())  # Sync weights
 
 replay_buffer = ReplayBuffer()
 
-# ! Changed learning rate from 0.001 to 0.005
 optimizer = optim.Adam(q_network.parameters(), lr=0.001, weight_decay=0.01)
 loss_fn = nn.SmoothL1Loss()
 
 # Hyperparameters
 num_episodes = 500
-batch_size = 128
+batch_size = 64
 gamma = 0.99  # Discount factor
 epsilon = 1.0
 epsilon_decay = 0.995
