@@ -31,7 +31,7 @@ class DQNetwork(nn.Module):
 
 
 class ReplayBuffer:
-    def __init__(self, max_size=100000):
+    def __init__(self, max_size=50000):
         self.buffer = deque(maxlen=max_size)
 
     def add(self, experience):
@@ -170,8 +170,11 @@ try:
                 loss.backward()
                 optimizer.step()
 
-        # Update epsilon
-        epsilon = max(min_epsilon, epsilon * epsilon_decay)
+        # Update epsilon with periodic restart
+        if episode % 500 == 0 and epsilon == min_epsilon:  # Restart exploration every 500 episodes
+            epsilon = 0.1  # Restart to a higher exploration rate
+        else:
+            epsilon = max(min_epsilon, epsilon * epsilon_decay)
 
         # Update target network
         if episode % update_target_steps == 0:
