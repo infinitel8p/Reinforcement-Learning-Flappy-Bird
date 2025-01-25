@@ -58,6 +58,8 @@ class Agent:
         self.fc1_nodes = hyperparameters["fc1_nodes"]
         # Optional environment parameters
         self.env_make_params = hyperparameters.get("env_make_params", {})
+        # Enable double DQN
+        self.enable_double_dqn = hyperparameters["enable_double_dqn"]
 
         self.loss_fn = torch.nn.MSELoss()  # NN loss function (Mean Squared Error)
         self.optimizer = None  # NN optimizer
@@ -222,13 +224,6 @@ class Agent:
         plt.close(fig)
 
     def optimize(self, mini_batch, policy_dqn, target_dqn):
-        # for state, action, new_state, reward, terminated in mini_batch:
-        #     if terminated:
-        #         target = reward
-        #     else:
-        #         with torch.no_grad():
-        #             target = reward + self.discount_factor_g * \
-        #                 target_dqn(new_state).max()
 
         # Transpose the list of experiences and separate them into individual tensors
         states, actions, new_states, rewards, terminations = zip(*mini_batch)
@@ -241,9 +236,16 @@ class Agent:
         terminations = torch.tensor(terminations).float().to(device)
 
         with torch.no_grad():
-            target_q = rewards + \
-                (1-terminations) * self.discount_factor_g * \
-                target_dqn(new_states).max(dim=1)[0]
+            if self.enable_double_dqn:
+                best_actions_from_policy = policy_dqn(new_states).argmax(dim=1)
+
+                target_q = rewards * (1-terminations) * self.discount_factor_g * target_dqn(
+                    new_states).gather(dim=1, index=best_actions_from_policy.unsqueeze(dim=1)).squeeze()
+            else:
+                # Compute the target Q-values
+                target_q = rewards + \
+                    (1-terminations) * self.discount_factor_g * \
+                    target_dqn(new_states).max(dim=1)[0]
 
         current_q = policy_dqn(states).gather(
             dim=1, index=actions.unsqueeze(dim=1)).squeeze()
