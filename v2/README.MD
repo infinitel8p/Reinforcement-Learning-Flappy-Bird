@@ -6,12 +6,12 @@ python -m venv venv
 Start the virtual environment with:  
 On Linux/MacOS:
 ```bash
-source venv/bin/activate
+source venv/bin/activate && cd v2
 ```
 
 On Windows:
 ```bash
-venv\Scripts\activate
+venv\Scripts\activate && cd v2
 ```
 
 Install Python dependencies with:
