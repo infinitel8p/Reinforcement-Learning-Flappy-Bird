@@ -117,7 +117,9 @@ class Agent:
 
         else:
             # Load the trained model and switch to evaluation mode
-            policy_dqn.load_state_dict(torch.load(self.MODEL_FILE))
+            policy_dqn.load_state_dict(torch.load(
+                self.MODEL_FILE, map_location=torch.device('cpu')))
+
             policy_dqn.eval()
 
         for episode in itertools.count():
