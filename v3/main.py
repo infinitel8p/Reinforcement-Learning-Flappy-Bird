@@ -8,11 +8,11 @@ import yaml
 from experience_replay import ReplayMemory
 from dqn import DQN
 
-import itertools
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 
+import itertools
 from datetime import datetime, timedelta
 import argparse
 import os
@@ -67,26 +67,21 @@ class Agent:
         self.loss_fn = torch.nn.MSELoss()  # NN loss function (Mean Squared Error)
         self.optimizer = None  # NN optimizer
 
-        self.LOG_FILE = os.path.join(
-            SAVEFILES_DIR, f"{self.hyperparameter_set}.log")
-        self.MODEL_FILE = os.path.join(
-            SAVEFILES_DIR, f"{self.hyperparameter_set}.pt")
-        self.GRAPH_FILE = os.path.join(
-            SAVEFILES_DIR, f"{self.hyperparameter_set}.png")
+        self.LOG_FILE = os.path.join(SAVEFILES_DIR, f"{self.hyperparameter_set}.log")
+        self.MODEL_FILE = os.path.join(SAVEFILES_DIR, f"{self.hyperparameter_set}.pt")
+        self.GRAPH_FILE = os.path.join(SAVEFILES_DIR, f"{self.hyperparameter_set}.png")
 
     def run(self, is_training: bool = True, render: bool = False):
         if is_training:
             start_time = datetime.now()
             last_graph_update_time = start_time
 
-            log_message = f"{start_time.strftime(
-                DATE_FORMAT)}: Training starting..."
+            log_message = f"{start_time.strftime(DATE_FORMAT)}: Training starting..."
             print(log_message)
             with open(self.LOG_FILE, 'w') as file:
                 file.write(log_message + '\n')
 
-        env = gymnasium.make(
-            self.env_id, render_mode='human' if render else None, **self.env_make_params)
+        env = gymnasium.make(self.env_id, render_mode='human' if render else None, **self.env_make_params)
 
         # Number of possible actions
         num_actions = env.action_space.n
@@ -96,8 +91,7 @@ class Agent:
         rewards_per_episode = []
 
         # Create policy DQN
-        policy_dqn = DQN(num_states, num_actions, self.fc1_nodes,
-                         self.enable_dueling_dqn).to(device)
+        policy_dqn = DQN(num_states, num_actions, self.fc1_nodes,self.enable_dueling_dqn).to(device)
 
         if is_training:
             # Epsilon value for epsilon-greedy policy
@@ -107,14 +101,12 @@ class Agent:
             memory = ReplayMemory(maxlen=self.replay_memory_size)
 
             # Create target DQN as a copy of the policy DQN
-            target_dqn = DQN(num_states, num_actions,
-                             self.fc1_nodes, self.enable_dueling_dqn).to(device)
+            target_dqn = DQN(num_states, num_actions,self.fc1_nodes, self.enable_dueling_dqn).to(device)
             # Copy the weights from policy DQN to target DQN
             target_dqn.load_state_dict(policy_dqn.state_dict())
 
             # Policy network optimizer (Adam optimizer)
-            self.optimizer = torch.optim.Adam(
-                policy_dqn.parameters(), lr=self.learning_rate_a)
+            self.optimizer = torch.optim.Adam(policy_dqn.parameters(), lr=self.learning_rate_a)
 
             # Track the number of steps taken to sync the policy with the target network
             step_count = 0
@@ -141,17 +133,14 @@ class Agent:
                 if is_training and random.random() < epsilon:
                     # Random action
                     action = env.action_space.sample()
-                    action = torch.tensor(
-                        action, dtype=torch.int64, device=device)
+                    action = torch.tensor(action, dtype=torch.int64, device=device)
                 else:
                     # turn off gradients for the inference since we are not training the model, select best action
                     with torch.no_grad():
-                        action = policy_dqn(state.unsqueeze(
-                            dim=0)).squeeze().argmax()
+                        action = policy_dqn(state.unsqueeze(dim=0)).squeeze().argmax()
 
                 # Execute the action
-                new_state, reward, terminated, _, info = env.step(
-                    action.item())
+                new_state, reward, terminated, _, info = env.step(action.item())
 
                 # Update the reward
                 episode_reward += reward
@@ -163,8 +152,7 @@ class Agent:
 
                 # Update the memory
                 if is_training:
-                    memory.append(
-                        (state, action, new_state, reward, terminated))
+                    memory.append((state, action, new_state, reward, terminated))
                     step_count += 1
 
                 # Move to the next state
@@ -175,8 +163,7 @@ class Agent:
             if is_training:
                 if episode_reward > best_reward:
                     # Save the model if a new best reward is achieved
-                    log_message = f"{datetime.now().strftime(DATE_FORMAT)}: New best reward {episode_reward:0.1f} ({
-                        (episode_reward-best_reward)/best_reward*100:+.1f}%) at episode {episode}, saving model..."
+                    log_message = f"{datetime.now().strftime(DATE_FORMAT)}: New best reward {episode_reward:0.1f} ({(episode_reward-best_reward)/best_reward*100}%) at episode {episode}, saving model..."
                     print(log_message)
                     with open(self.LOG_FILE, 'a') as file:
                         file.write(log_message + '\n')
@@ -196,8 +183,7 @@ class Agent:
                     self.optimize(mini_batch, policy_dqn, target_dqn)
 
                     # Decay epsilon
-                    epsilon = max(epsilon * self.epsilon_decay,
-                                  self.epsilon_min)
+                    epsilon = max(epsilon * self.epsilon_decay, self.epsilon_min)
                     epsilon_history.append(epsilon)
 
                     # Copy policy network to target network after a certain number of steps
@@ -246,16 +232,12 @@ class Agent:
             if self.enable_double_dqn:
                 best_actions_from_policy = policy_dqn(new_states).argmax(dim=1)
 
-                target_q = rewards * (1-terminations) * self.discount_factor_g * target_dqn(
-                    new_states).gather(dim=1, index=best_actions_from_policy.unsqueeze(dim=1)).squeeze()
+                target_q = rewards * (1-terminations) * self.discount_factor_g * target_dqn(new_states).gather(dim=1, index=best_actions_from_policy.unsqueeze(dim=1)).squeeze()
             else:
                 # Compute the target Q-values
-                target_q = rewards + \
-                    (1-terminations) * self.discount_factor_g * \
-                    target_dqn(new_states).max(dim=1)[0]
+                target_q = rewards + (1-terminations) * self.discount_factor_g * target_dqn(new_states).max(dim=1)[0]
 
-        current_q = policy_dqn(states).gather(
-            dim=1, index=actions.unsqueeze(dim=1)).squeeze()
+        current_q = policy_dqn(states).gather(dim=1, index=actions.unsqueeze(dim=1)).squeeze()
 
         # Compute loss for the whole minibatch
         loss = self.loss_fn(current_q, target_q)
