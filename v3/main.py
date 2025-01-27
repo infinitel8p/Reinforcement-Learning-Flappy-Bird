@@ -18,6 +18,7 @@ import argparse
 import os
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
+print(device)
 
 DATE_FORMAT = "%H:%M:%S_%d-%m-%Y"
 SAVEFILES_DIR = "savefile"

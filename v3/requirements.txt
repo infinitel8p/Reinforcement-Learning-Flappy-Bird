@@ -1,0 +1,4 @@
+flappy-bird-gymnasium
+torch
+numpy<2
+pyyaml
