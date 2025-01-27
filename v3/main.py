@@ -163,7 +163,7 @@ class Agent:
             if is_training:
                 if episode_reward > best_reward:
                     # Save the model if a new best reward is achieved
-                    log_message = f"{datetime.now().strftime(DATE_FORMAT)}: New best reward {episode_reward:0.1f} ({(episode_reward-best_reward)/best_reward*100}%) at episode {episode}, saving model..."
+                    log_message = f"{datetime.now().strftime(DATE_FORMAT)}: New best reward {episode_reward} ({(episode_reward-best_reward)/best_reward*100:+.1f}%) at episode {episode}, saving model..."
                     print(log_message)
                     with open(self.LOG_FILE, 'a') as file:
                         file.write(log_message + '\n')
