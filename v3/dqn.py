@@ -12,11 +12,24 @@ class DQN(nn.Module):
             hidden_dim (int): dimension of the hidden layer
     """
 
-    def __init__(self, state_dim, action_dim, hidden_dim=256):
+    def __init__(self, state_dim, action_dim, hidden_dim=256, enable_dueling_dqn=True):
         super(DQN, self).__init__()
 
-        self.fc1 = nn.Linear(state_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, action_dim)
+        self.enable_dueling_dqn = enable_dueling_dqn
+
+        # input layer implicit in pytorch
+        self.fc1 = nn.Linear(state_dim, hidden_dim)  # Hidden layer
+
+        if self.enable_dueling_dqn:
+            # Value stream
+            self.fc_value = nn.Linear(hidden_dim, 256)  # Value layer
+            self.value = nn.Linear(256, 1)
+            # Advantage stream
+            self.fc_advantage = nn.Linear(hidden_dim, 256)  # Advantage layer
+            self.advantage = nn.Linear(256, action_dim)
+
+        else:
+            self.output = nn.Linear(hidden_dim, action_dim)  # Output layer
 
     def forward(self, x):
         """ Forward pass of the network.
@@ -28,7 +41,20 @@ class DQN(nn.Module):
         """
 
         x = F.relu(self.fc1(x))  # ReLU activation function for the first layer
-        return self.fc2(x)  # Output layer
+
+        if self.enable_dueling_dqn:
+            # Value calculation
+            v = F.relu(self.fc_value(x))
+            V = self.value(v)
+            # Advantage calculation
+            a = F.relu(self.fc_advantage(x))
+            A = self.advantage(a)
+
+            # Calculate Q-values by combining value and advantage streams
+            Q = V + A - torch.mean(A, dim=1, keepdim=True)
+        else:
+            Q = self.output(x)
+        return Q
 
 
 if __name__ == "__main__":
@@ -38,7 +64,7 @@ if __name__ == "__main__":
     dqn = DQN(state_dim, action_dim)
 
     # Create a random state tensor
-    state = torch.randn(1, state_dim)
+    state = torch.randn(10, state_dim)
 
     # Get the Q-values
     output = dqn(state)

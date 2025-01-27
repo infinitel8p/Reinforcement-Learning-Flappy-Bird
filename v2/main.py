@@ -49,7 +49,7 @@ class Agent:
         # Rate at which the policy network is synced with the target network
         self.network_sync_rate = hyperparameters["network_sync_rate"]
         # Learning rate for the Adam optimizer (alpha)
-        self.learning_rate_adam = hyperparameters["learning_rate_adam"]
+        self.learning_rate_a = hyperparameters["learning_rate_a"]
         # Discount factor for the Q-value estimation (gamma)
         self.discount_factor_g = hyperparameters["discount_factor_g"]
         # Stop training when the reward exceeds this value
@@ -109,7 +109,7 @@ class Agent:
 
             # Policy network optimizer (Adam optimizer)
             self.optimizer = torch.optim.Adam(
-                policy_dqn.parameters(), lr=self.learning_rate_adam)
+                policy_dqn.parameters(), lr=self.learning_rate_a)
 
             # Track the number of steps taken to sync the policy with the target network
             step_count = 0

@@ -49,7 +49,7 @@ class Agent:
         # Rate at which the policy network is synced with the target network
         self.network_sync_rate = hyperparameters["network_sync_rate"]
         # Learning rate for the Adam optimizer (alpha)
-        self.learning_rate_adam = hyperparameters["learning_rate_adam"]
+        self.learning_rate_a = hyperparameters["learning_rate_a"]
         # Discount factor for the Q-value estimation (gamma)
         self.discount_factor_g = hyperparameters["discount_factor_g"]
         # Stop training when the reward exceeds this value
@@ -60,6 +60,8 @@ class Agent:
         self.env_make_params = hyperparameters.get("env_make_params", {})
         # Enable double DQN
         self.enable_double_dqn = hyperparameters["enable_double_dqn"]
+        # Enable dueling DQN
+        self.enable_dueling_dqn = hyperparameters["enable_dueling_dqn"]
 
         self.loss_fn = torch.nn.MSELoss()  # NN loss function (Mean Squared Error)
         self.optimizer = None  # NN optimizer
@@ -93,9 +95,9 @@ class Agent:
         rewards_per_episode = []
 
         # Create policy DQN
-        policy_dqn = DQN(num_states, num_actions, self.fc1_nodes).to(device)
+        policy_dqn = DQN(num_states, num_actions, self.fc1_nodes,
+                         self.enable_dueling_dqn).to(device)
 
-        # Define memory for Experience Replay if in training mode
         if is_training:
             # Epsilon value for epsilon-greedy policy
             epsilon = self.epsilon_initial
@@ -105,19 +107,19 @@ class Agent:
 
             # Create target DQN as a copy of the policy DQN
             target_dqn = DQN(num_states, num_actions,
-                             self.fc1_nodes).to(device)
+                             self.fc1_nodes, self.enable_dueling_dqn).to(device)
             # Copy the weights from policy DQN to target DQN
             target_dqn.load_state_dict(policy_dqn.state_dict())
 
             # Policy network optimizer (Adam optimizer)
             self.optimizer = torch.optim.Adam(
-                policy_dqn.parameters(), lr=self.learning_rate_adam)
+                policy_dqn.parameters(), lr=self.learning_rate_a)
 
             # Track the number of steps taken to sync the policy with the target network
             step_count = 0
-
+            # Track epsilon decay
             epsilon_history = []
-
+            # Track the best reward
             best_reward = -np.inf
 
         else:
@@ -126,6 +128,7 @@ class Agent:
             policy_dqn.eval()
 
         for episode in itertools.count():
+            # Initialize the environment
             state, _ = env.reset()
             state = torch.tensor(state, dtype=torch.float, device=device)
 
@@ -133,12 +136,14 @@ class Agent:
             episode_reward = 0.0
 
             while (not terminated and episode_reward < self.stop_on_reward):
+                # Select an action based on the epsilon-greedy policy
                 if is_training and random.random() < epsilon:
+                    # Random action
                     action = env.action_space.sample()
                     action = torch.tensor(
                         action, dtype=torch.int64, device=device)
                 else:
-                    # turn off gradients for the inference since we are not training the model
+                    # turn off gradients for the inference since we are not training the model, select best action
                     with torch.no_grad():
                         action = policy_dqn(state.unsqueeze(
                             dim=0)).squeeze().argmax()
@@ -168,6 +173,7 @@ class Agent:
 
             if is_training:
                 if episode_reward > best_reward:
+                    # Save the model if a new best reward is achieved
                     log_message = f"{datetime.now().strftime(DATE_FORMAT)}: New best reward {episode_reward:0.1f} ({
                         (episode_reward-best_reward)/best_reward*100:+.1f}%) at episode {episode}, saving model..."
                     print(log_message)
