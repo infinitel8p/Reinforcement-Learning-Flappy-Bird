@@ -21,10 +21,10 @@ pip install -r requirements.txt
 
 Start training the model with:
 ```bash
-python main.py cartpole1 --train
+python main.py cartpole --train
 ```
 
 The model will train for unlimited episodes until it reaches a reward of 100000. After that you can test the model with:
 ```bash
-python main.py cartpole1
+python main.py cartpole
 ```
