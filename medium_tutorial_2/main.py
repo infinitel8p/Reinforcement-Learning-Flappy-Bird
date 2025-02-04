@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import torch
 import time
 
+os.putenv('SDL_VIDEODRIVER', 'fbcon') # run in headless mode
+os.environ["SDL_VIDEODRIVER"] = "dummy" # run in headless mode
 game = FlappyBird(width=256, height=256)
 p = PLE(game, display_screen=False)
 p.init()

@@ -40,6 +40,7 @@ class Agent():
         self.graph_saver = graph_saver
         #Select the GPU if we have one
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"Device: {self.device}")
         self.episode_durations = []
         self.episode_rewards = []
         self.episode_epsilons = []
