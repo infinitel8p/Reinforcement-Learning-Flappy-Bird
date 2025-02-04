@@ -56,7 +56,8 @@ class DQN(torch.nn.Module):
             return output
         else:
             return self.output(x)
-        
+
+
 '''
 MemoryRecall module, this is needed to cache data from the environment.
 
