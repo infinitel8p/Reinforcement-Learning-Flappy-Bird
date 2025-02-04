@@ -35,6 +35,7 @@ class Agent():
         self.TAU = TAU
         #Select the GPU if we have one
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"Device: {self.device}")
         self.episode_durations = []
         #Create the cache recall memory
         self.cache_recall = MemoryRecall.MemoryRecall(memory_size=MEMORY_SIZE)
