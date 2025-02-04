@@ -19,9 +19,13 @@ import pygame as pg
 import matplotlib.pyplot as plt
 import torch.optim as optim
 import math
+import time
+
+savedir = 'medium_tutorial'
+start_time = time.strftime('%H:%M:%S-%d.%m.%Y')
 
 class Agent():
-    def __init__(self, BATCH_SIZE, MEMORY_SIZE, GAMMA, input_dim, output_dim, action_dim, action_dict, EPS_START, EPS_END, EPS_DECAY_VALUE, lr, TAU, network_type='DDQN') -> None:
+    def __init__(self, BATCH_SIZE, MEMORY_SIZE, GAMMA, input_dim, output_dim, action_dim, action_dict, EPS_START, EPS_END, EPS_DECAY_VALUE, lr, TAU, network_type='DDQN', graph_saver = None) -> None:
         #Set all the values up
         self.BATCH_SIZE = BATCH_SIZE
         self.GAMMA = GAMMA
@@ -33,9 +37,14 @@ class Agent():
         self.EPS_DECAY_VALUE=EPS_DECAY_VALUE
         self.eps = EPS_START
         self.TAU = TAU
+        self.graph_saver = graph_saver
         #Select the GPU if we have one
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.episode_durations = []
+        self.episode_rewards = []
+        self.episode_epsilons = []
+        self.episode_scores = []
+
         #Create the cache recall memory
         self.cache_recall = MemoryRecall.MemoryRecall(memory_size=MEMORY_SIZE)
         self.network_type = network_type
@@ -70,21 +79,7 @@ class Agent():
 
     
     def plot_durations(self):
-        plt.figure(1)
-        plt.clf()
-        durations_t = torch.tensor(self.episode_durations, dtype=torch.float)
-        plt.title('Training...')
-        plt.xlabel('Episode')
-        plt.ylabel('Duration')
-        #Plot the durations
-        plt.plot(durations_t.numpy())
-        # Take 100 episode averages of the durations and plot them too, to show a running average on the graph
-        if len(durations_t) >= 100:
-            means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
-            means = torch.cat((torch.zeros(99), means))
-            plt.plot(means.numpy())
-        plt.pause(0.001)  # pause a bit so that plots are updated
-        plt.savefig(self.network_type+'_training.png')
+        self.graph_saver.plot_graphs(self)
     
     #Function to copy the policy net parameters to the target net
     # def update_target_network(self):
@@ -97,6 +92,7 @@ class Agent():
         for key in policy_net_state_dict:
             target_net_state_dict[key] = policy_net_state_dict[key]*self.TAU + target_net_state_dict[key]*(1-self.TAU)
             self.target_net.load_state_dict(target_net_state_dict)
+
     def optimize_model(self):
         #Only pop the data if we have enough for the network
         if len(self.cache_recall) < self.BATCH_SIZE:
@@ -138,12 +134,14 @@ class Agent():
             env.reset_game()
             state = env.getGameState()
             state = torch.tensor(list(state.values()), dtype=torch.float32, device=self.device)
+            reward_sum = 0
             #Inf count functiom
             for c in count():
                 #Choose an action, get back the reward and the next state as a result of taking the action
                 action = self.take_action(state)
                 reward = env.act(self.action_dict[action])
                 reward = torch.tensor([reward], device=self.device)
+                reward_sum += reward.item()
                 action = torch.tensor([action], device=self.device)
                 next_state = env.getGameState()
                 next_state = torch.tensor(list(next_state.values()), dtype=torch.float32, device=self.device)
@@ -162,13 +160,20 @@ class Agent():
                 if done:
                     #Update the number of durations for the episode
                     self.episode_durations.append(c+1)
+                    self.episode_epsilons.append(self.eps)
+                    self.episode_scores.append(env.score())
+                    self.episode_rewards.append(reward_sum)
                     #Plot them and save the networks
-                    self.plot_durations()
                     print("EPS: {}".format(self.eps))
                     print("Durations: {}".format(c+1))
                     print("Score: {}".format(env.score()))
-                    torch.save(self.target_net.state_dict(), self.network_type+'_target_net.pt')
-                    torch.save(self.policy_net.state_dict(), self.network_type+'_policy_net.pt')
+                    
+                    if episode % 20 == 0:
+                        self.graph_saver.plot_graphs(self)
+                    if episode % 100 == 0:
+                        self.graph_saver.save_net(self)
+                    # torch.save(self.target_net.state_dict(), self.network_type+'_target_net.pt')
+                    # torch.save(self.policy_net.state_dict(), self.network_type+'_policy_net.pt')
                     #Start a new episode
                     break
 
