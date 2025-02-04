@@ -1,4 +1,7 @@
 .venv/
+venv/
+.vscode/
+__pycache__/
 torch_tutorial.ipynb
 experiment.ipynb
 medium_tutorial_full_code1/
