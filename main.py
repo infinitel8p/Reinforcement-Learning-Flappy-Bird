@@ -101,8 +101,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Train or test model. Default is training a new model.')
 
     parser.add_argument('-t', '--test', action='store_true', help='Test our model', dest='test')
+    parser.add_argument('-e', '--episodes', type=int, help='Number of episodes to train the model. Defaults to 50', default=50)
     parser.add_argument('--headless', action='store_true', help='Run in headless mode (⚠️ Not properly tested)', dest='headless')
-    parser.add_argument('-e', '--episodes', type=int, help='Number of episodes to train the model', default=50)
     args = parser.parse_args()
 
     if args.headless:
