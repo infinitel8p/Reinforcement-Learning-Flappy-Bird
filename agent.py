@@ -9,6 +9,7 @@ takes actions, and trains the model
 
 '''
 
+import os
 import torch
 import model
 import MemoryRecall
@@ -22,7 +23,8 @@ import math
 import time
 from pygame_recorder import ScreenRecorder
 
-savedir = 'medium_tutorial'
+savedir = 'recordings'
+os.makedirs(savedir, exist_ok=True)
 start_time = time.strftime('%H:%M:%S-%d.%m.%Y')
 
 class Agent():
@@ -39,6 +41,7 @@ class Agent():
         self.eps = EPS_START
         self.TAU = TAU
         self.graph_saver = graph_saver
+
         #Select the GPU if we have one
         if device is None:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -53,12 +56,15 @@ class Agent():
         #Create the cache recall memory
         self.cache_recall = MemoryRecall.MemoryRecall(memory_size=MEMORY_SIZE)
         self.network_type = network_type
+
         #Create the dual Q networks - target and policy nets
         self.policy_net = model.DQN(input_dim=input_dim, output_dim=output_dim, network_type=network_type).to(self.device)
         self.target_net = model.DQN(input_dim=input_dim, output_dim=output_dim, network_type=network_type).to(self.device)
+
         #No need to calculate gradients for target net parameters as these are periodically copied from the policy net
         for param in self.target_net.parameters():
             param.requires_grad = False
+            
         #Copy the initial parameters from the policy net to the target net to align them at the start
         #Diff
         self.target_net.load_state_dict(self.policy_net.state_dict())
@@ -66,7 +72,7 @@ class Agent():
         self.steps_done = 0
         self.FPS = 30
         self.clock = pg.time.Clock()
-        self.recorder = ScreenRecorder(256, 256, self.FPS, 'medium_tutorial_2/output.avi')
+        self.recorder = ScreenRecorder(256, 256, self.FPS, savedir)
     
     #We want to use no gradient computation, as we do not update the networks paramaters
     @torch.no_grad()
