@@ -6,14 +6,17 @@ class ScreenRecorder:
     """
         This class is used to record a PyGame surface and save it to a video file.
     """
-    def __init__(self, width, height, fps, out_file='output.avi'):
+
+    def __init__(self, width: int, height: int, fps: int, out_file: str = 'output.avi'):
+        """Initialize the ScreenRecorder with the parameters of the surface.
+
+        Args:
+            width (int): Width of the surface to capture
+            height (int): Height of the surface to capture
+            fps (int): Frames per second
+            out_file (str, optional): Output file to save the recording to. Defaults to 'output.avi'.
         """
-        Initialize the recorder with parameters of the surface.
-        :param width: Width of the surface to capture
-        :param height: Height of the surface to capture
-        :param fps: Frames per second
-        :param out_file: Output file to save the recording
-        """
+
         print(f'Initializing ScreenRecorder with parameters width:{width} height:{height} fps:{fps}.')
         print(f'Output of the screen recording saved to {out_file}.')
 
@@ -22,15 +25,12 @@ class ScreenRecorder:
         self.video = cv2.VideoWriter(out_file, four_cc, float(fps), (width, height))
 
     def capture_frame(self, surf):
+        """ Capture the frame from the pygame surface. 
+        Note: surface must have the dimensions specified in the constructor.
+        Args:
+            surf: pygame surface to capture
         """
-         Call this method every frame, pass in the pygame surface to capture.
-        :param surf: pygame surface to capture
-        :return: None
-        """
-        """
-           
-            Note: surface must have the dimensions specified in the constructor.
-        """
+
         # transform the pixels to the format used by open-cv
         pixels = cv2.rotate(pygame.surfarray.pixels3d(surf), cv2.ROTATE_90_CLOCKWISE)
         pixels = cv2.flip(pixels, 1)
@@ -41,13 +41,8 @@ class ScreenRecorder:
 
     def end_recording(self):
         """
-        Call this method to stop recording.
-        :return: None
+        End the recording and release the video object.
         """
+
         # stop recording
         self.video.release()
-
-# References
-#   For more tutorials on cv2.VideoWriter, go to:
-#   - https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_gui/py_video_display/py_video_display.html#display-video
-#   - https://medium.com/@enriqueav/how-to-create-video-animations-using-python-and-opencv-881b18e41397
