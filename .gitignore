@@ -6,3 +6,5 @@ torch_tutorial.ipynb
 experiment.ipynb
 medium_tutorial_full_code1/
 medium_tutorial_full_code/
+medium_tutorial_2/weights/*
+!medium_tutorial_2/weights/weights_14.08.27-04.02.2025
