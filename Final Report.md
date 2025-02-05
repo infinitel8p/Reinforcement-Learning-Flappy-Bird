@@ -1,15 +1,22 @@
 # Reinforcement Learning for Flappy Bird
 
 **Bochum PfMML24/25 Custom Project**  
+**German Litvinov**  
+Department of Applied Computer Science  
+*Ruhr University Bochum*  
+[German.Litvinov@ruhr-uni-bochum.de](mailto:German.Litvinov@ruhr-uni-bochum.de)
+
 **Ludovico Ferrara**  
 Department of Applied Computer Science  
-Ruhr University Bochum   
+*Ruhr University Bochum*  
 [ludovico.ferrara@ruhr-uni-bochum.de](mailto:ludovico.ferrara@ruhr-uni-bochum.de)
+
 
 ## Abstract
 
-An abstract should concisely (less than 300 words) motivate the problem, describe
-your aims, describe your contribution, and highlight your main finding(s).
+In this project, we explore the application of reinforcement learning, specifically Deep Q-Learning (DQL), to train an agent capable of playing the game Flappy Bird. Flappy Bird is a deceptively simple yet challenging side-scrolling game where the player (or agent) controls a bird navigating through gaps between pipes, with the goal of maximizing the number of pipes passed without collision. The agent faces unique challenges such as sparse rewards, high penalties for failure, and the need for precise control with minimal actions (flap or do nothing).
+
+Through extensive experimentation, we observed that the agent performed significantly better in the pyGame environment, achieving higher scores and longer survival durations compared to the gymnasium environment, where performance plateaued early. These differences highlight the impact of environment dynamics and state representation on reinforcement learning performance. Despite time and computational constraints limiting full hyperparameter optimization and architectural exploration, the project successfully demonstrates the feasibility of applying Deep Q-Learning to dynamic, real-time games like Flappy Bird.
 
 ## 1 Key Information to include
 - Mentor: Prof. Dr. Nils Jansen
@@ -232,26 +239,107 @@ The **next state** is defined similarly, but represents the agent's state after 
 The data is fetched randomly from memory in **batches of 32 samples**. For each sample a **state action value** is calculated with the **policy network** and compared against the **expected state action value** calculated by the **target network**.
 
 ### 5.2 Evaluation method
-The performance of our model would be evaluated by inspecting the **sum of rewards** for each run or **duration** of each run over the **number of episodes**. The corresponding plots were created and updated during the training process and watched upon, to get an idea if the model is progressing.
+The performance of our model would be evaluated by inspecting the **sum of rewards** for each run or **duration** of each run over the **number of episodes**. For both values there was computed an average value over the last 100 datapoints The corresponding plots were created and updated during the training process and watched upon, to get an idea if the model is progressing.
+
+- **duration** - is a count for how many actions were taken in the run
+- **sum of reward** - is the sum of each reward after an action in a given run. Sometimes named 'Score' on plots.
 
 An indicator of good performance would be a plot that showed growth of reward or duration.
 
 ### 5.3 Experimental details
-Report how you ran your experiments (e.g., model configurations, learning rate, training time, etc.)
+We ended up using several upproaches to achieve good model performance. We focused on **Double DQN** and **Dueling Double DQN** architectures and used different environments.
+
+### 5.3.1 Dueling Double DQN with gymnasium
+The first environment was a **gymnasium** environment with the flappy bird game.
+Both **policy** and **target** networks have the same structure
+
+The training of the agent lasted for about 40 000 episodes and resulted into a **plato** after around 10 000 steps after reaching the average reward of around 3,5. 
+
+![Image](https://github.com/user-attachments/assets/62c09f9b-3a7a-4308-95b5-bbe1230a452c)
+
+
+### 5.3.2 Double Dueling DQN with pyGame
+The second environment was the **pyGame** environment.
+Both **policy** and **target** networks have the same structure
+
+This time the training was done for around 11 000 episodes and the agent was able to achieve **high** durations and scores. If the training was not stopped, it seems that the agent would be able to achieve even better results.
+
+![Image](https://github.com/user-attachments/assets/5846c694-de1e-4636-98fb-79993cd24bb0)
 
 ### 5.4 Results
-Report the quantitative results that you have found. Use a table or plot to compare results and compare
-against baselines.
-• If you're a default project team, you should report the accuracy and Pearson correlation
-scores you obtained on the test leaderboard in this section. You can also report dev set
-results if you'd like.
-• Comment on your quantitative results. Are they what you expected? Better than you
-expected? Worse than you expected? Why do you think that is? What does that tell you
-about your approach?
+#### **Comparison of Training Results**  
+
+| Environment   | Training Duration      | Performance                                             | Observations                           |
+| ------------- | ---------------------- | ------------------------------------------------------- | -------------------------------------- |
+| **pyGame**    | around 11,000 episodes | High durations & scores                                 | Training shows continuous improvement. |
+| **gymnasium** | around 40,000 episodes | Plateau at around 10,000 steps (Avg. reward approx 3.5) | Performance plateaued.                 |
+
+---
+
+#### **Observations**  
+
+- **pyGame Environment**:  
+  - The agent achieved high durations and scores after training for around 11,000 episodes.  
+  - If training continued, the agent seemed capable of achieving even better results.  
+
+- **gymnasium Environment**:  
+  - Training lasted around 40,000 steps, but the agent plateaued after approx. 10,000 steps.  
+  - The average reward reached 3.5, and further improvements were not observed.  
+  - This suggests possible issues with the environment's dynamics or training hyperparameters.  
+
+---
+
+#### **Conclusion & Future Improvements**  
+
+There could be several potential reasons for the poor **gymnasium** performance:
+- More difficult play mode with higher speed, velocity and smaller pipe holes
+- Too comlicated state descriprion that imitates lidar
+- Bugs in the enironment itself
 
 ## 6 Analysis
-Your report should include qualitative evaluation. That is, try to understand your system (e.g., how it
-works, when it succeeds and when it fails) by inspecting key characteristics or outputs of your model.
+#### **Agent's behavior**  
+
+- The agent learns to avoid pipes and maximize its survival time, especially in the **pyGame** environment, where performance continuously improves.  
+- In **gymnasium**, the agent learns up unitil a certain point but then stops improving.  
+
+
+#### **When the agent performs good**  
+
+**Pipe avoidance:**  
+  - The agent successfully identifies the optimal jump timing to pass through pipes without collisions.  
+  - It learns to maintain a stable trajectory.  
+
+**Long survival times:**  
+  - The agent tends to closer to the middle of the pipe opening.  
+  - In the PyGame environment, it gets better at performing the needed actions, leading to longer survival times.  
+
+---
+
+#### **When the agent performs bad**  
+
+**Early training:**  
+  - At the beginning, the agent jumps to often, leading to crashes into pipes and floor.  
+  - It deos  not recognize long-term consequences of its actions.
+
+**gymansium**
+  - The agent does not perform good in the gymnasium environment
+
+---
+
+#### **Insights**  
+
+**gymnasium:**  
+  - The agent could be employing too small networks if the environments game rules are more harsh or the state description too complicated.
+  - In case of larger networks longer training times are also required
+
+**Number of episodes**
+  - The agent benefits from long training times .
+
+**Reward tuning:**  
+  - Rewarding smoother movements or penalizing unnecessary jumps could improve the agent’s efficiency.  
+
+**Improved state representation:**  
+  - Using additional environmental cues, such as angle adjustments or future trajectory predictions, could improve decision-making. But could also potentialy increase the need for a larger network.
 
 ## 7 Conclusion
 We conclude by saying that we were able to successfully train a reinforcement learning agent to play Flappy Bird using the Deep Q-Learning algorithm. The agent was able to learn a policy that allowed it to navigate the game environment and achieve a relatively high score. While the lack of time due to us having to switch environments throughout the project prevented us from fully exploring the potential of the model by finetuningn hyperparameters and testing different network architectures, we were able make a model capable of playing the game.
