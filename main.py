@@ -1,10 +1,14 @@
+# References:
+# Agent + training: https://github.com/nathanwbailey/flappy_bird_reinforcement_learning
+# pyGame learning environment: https://github.com/ntasfi/PyGame-Learning-Environment
+# pyGame recorder: https://github.com/tdrmk/pygame_recorder
+
 import os
 import sys
 sys.path.append("./pygame-le")
 import pygame as pg
 from ple import PLE 
 from ple.games.flappybird import FlappyBird
-from ple import PLE
 import agent
 import matplotlib.pyplot as plt
 import torch
@@ -97,17 +101,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Train or test model. Default is training a new model.')
 
     parser.add_argument('--t', '--test', action='store_true', help='Test our model', dest='test')
-    parser.add_argument('--headless', action='store_true', help='Run in headless mode', dest='headless')
+    parser.add_argument('--headless', action='store_true', help='Run in headless mode (⚠️ Not properly tested)', dest='headless')
     parser.add_argument('--episodes','--e',  type=int, help='Number of episodes to train the model', default=50)
     args = parser.parse_args()
 
     if args.headless:
         # run in headless mode
-        # os.putenv('SDL_VIDEODRIVER', 'fbcon')
-        # os.environ["SDL_VIDEODRIVER"] = "dummy"
-
-        # Headless crashes due to graph saver for now, so we will disable it due to time constraints
-        print("Not implemented yet")
+        os.putenv('SDL_VIDEODRIVER', 'fbcon')
+        os.environ["SDL_VIDEODRIVER"] = "dummy"
 
     game = FlappyBird(width=256, height=256)
     p = PLE(game, display_screen=True)
@@ -140,7 +141,8 @@ if __name__ == "__main__":
         TAU=0.005,
         network_type='DuelingDQN',
         lr=1e-4,
-        graph_saver=flappy_bird_plot_saver
+        graph_saver=flappy_bird_plot_saver,
+        headless=args.headless    
     )
 
     if args.test:
