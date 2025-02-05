@@ -254,6 +254,4 @@ Your report should include qualitative evaluation. That is, try to understand yo
 works, when it succeeds and when it fails) by inspecting key characteristics or outputs of your model.
 
 ## 7 Conclusion
-Summarize the main findings of your project and what you have learned. Highlight your achievements,
-and note the primary limitations of your work. If you'd like, you can describe avenues for future
-work.
+We conclude by saying that we were able to successfully train a reinforcement learning agent to play Flappy Bird using the Deep Q-Learning algorithm. The agent was able to learn a policy that allowed it to navigate the game environment and achieve a relatively high score. While the lack of time due to us having to switch environments throughout the project prevented us from fully exploring the potential of the model by finetuningn hyperparameters and testing different network architectures, we were able make a model capable of playing the game.
