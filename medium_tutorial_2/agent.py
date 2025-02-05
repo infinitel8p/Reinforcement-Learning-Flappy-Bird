@@ -20,12 +20,13 @@ import matplotlib.pyplot as plt
 import torch.optim as optim
 import math
 import time
+from pygame_recorder import ScreenRecorder
 
 savedir = 'medium_tutorial'
 start_time = time.strftime('%H:%M:%S-%d.%m.%Y')
 
 class Agent():
-    def __init__(self, BATCH_SIZE, MEMORY_SIZE, GAMMA, input_dim, output_dim, action_dim, action_dict, EPS_START, EPS_END, EPS_DECAY_VALUE, lr, TAU, network_type='DDQN', graph_saver = None) -> None:
+    def __init__(self, BATCH_SIZE, MEMORY_SIZE, GAMMA, input_dim, output_dim, action_dim, action_dict, EPS_START, EPS_END, EPS_DECAY_VALUE, lr, TAU, network_type='DDQN', graph_saver = None, device=None) -> None:
         #Set all the values up
         self.BATCH_SIZE = BATCH_SIZE
         self.GAMMA = GAMMA
@@ -39,7 +40,10 @@ class Agent():
         self.TAU = TAU
         self.graph_saver = graph_saver
         #Select the GPU if we have one
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        if device is None:
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        else: 
+            self.device = device
         print(f"Device: {self.device}")
         self.episode_durations = []
         self.episode_rewards = []
@@ -60,6 +64,9 @@ class Agent():
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=lr, amsgrad=True)
         self.steps_done = 0
+        self.FPS = 30
+        self.clock = pg.time.Clock()
+        self.recorder = ScreenRecorder(256, 256, self.FPS, 'medium_tutorial_2/output.avi')
     
     #We want to use no gradient computation, as we do not update the networks paramaters
     @torch.no_grad()
@@ -68,11 +75,11 @@ class Agent():
         self.eps = self.eps*self.EPS_DECAY_VALUE
         self.eps = max(self.eps, self.EPS_END)
         # self.eps = self.EPS_END + (self.EPS_START - self.EPS_END) * math.exp(-1. * self.steps_done / self.EPS_DECAY_VALUE)
-        #Take a random action
+        #Else take a greedy action
         if self.eps < np.random.rand():
             state = state[None, :]
             action_idx = torch.argmax(self.policy_net(state), dim=1).item()
-        #Else take a greedy action
+        #Take a random action
         else:
             action_idx = random.randint(0, self.action_dim-1)
         self.steps_done += 1
@@ -138,6 +145,7 @@ class Agent():
             reward_sum = 0
             #Inf count functiom
             for c in count():
+                start_time = time.time()
                 #Choose an action, get back the reward and the next state as a result of taking the action
                 action = self.take_action(state)
                 reward = env.act(self.action_dict[action])
@@ -158,6 +166,8 @@ class Agent():
                 self.optimize_model()
                 self.update_target_network()
                 pg.display.update()
+                self.recorder.capture_frame(env.getScreen())
+                #self.clock.tick(self.FPS)
                 if done:
                     #Update the number of durations for the episode
                     self.episode_durations.append(c+1)
@@ -165,9 +175,7 @@ class Agent():
                     self.episode_scores.append(env.score())
                     self.episode_rewards.append(reward_sum)
                     #Plot them and save the networks
-                    print("EPS: {}".format(self.eps))
-                    print("Durations: {}".format(c+1))
-                    print("Score: {}".format(env.score()))
+                    print(f'episode: {episode} | eps: {self.eps} | duration: {c+1} | reward: {reward_sum} | running time: {time.time() - start_time}')
                     
                     if episode % 20 == 0:
                         self.graph_saver.plot_graphs(self)
@@ -177,6 +185,7 @@ class Agent():
                     # torch.save(self.policy_net.state_dict(), self.network_type+'_policy_net.pt')
                     #Start a new episode
                     break
+        self.recorder.end_recording()
 
 
 

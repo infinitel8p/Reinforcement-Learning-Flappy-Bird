@@ -355,6 +355,9 @@ class PLE(object):
         else:
             raise ValueError(
                 "Was asked to return state vector for game that does not support it!")
+        
+    def getScreen(self):
+        return self.game.screen
 
     def act(self, action):
         """

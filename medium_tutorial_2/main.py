@@ -11,10 +11,10 @@ import matplotlib.pyplot as plt
 import torch
 import time
 
-os.putenv('SDL_VIDEODRIVER', 'fbcon') # run in headless mode
-os.environ["SDL_VIDEODRIVER"] = "dummy" # run in headless mode
+# os.putenv('SDL_VIDEODRIVER', 'fbcon') # run in headless mode
+# os.environ["SDL_VIDEODRIVER"] = "dummy" # run in headless mode
 game = FlappyBird(width=256, height=256)
-p = PLE(game, display_screen=False)
+p = PLE(game, display_screen=True)
 p.init()
 actions = p.getActionSet()
 #List of possible actions is go up or do nothing
@@ -71,7 +71,7 @@ class GraphSaver():
 flappy_bird_plot_saver = GraphSaver('medium_tutorial_2/graphs', 'medium_tutorial_2/weights')
 
 #Create the agent and train it
-agent = agent.Agent(
+fb_agent = agent.Agent(
     BATCH_SIZE=32, 
     MEMORY_SIZE=100000, 
     GAMMA=0.99, 
@@ -88,5 +88,13 @@ agent = agent.Agent(
     graph_saver=flappy_bird_plot_saver
 )
 
-agent.train(episodes=109, env=p)
+policy_net_weights = torch.load('medium_tutorial_2/weights/weights_14:08:27-04.02.2025/DuelingDQN_policy_net.pt')
+target_net_weights = torch.load('medium_tutorial_2/weights/weights_14:08:27-04.02.2025/DuelingDQN_target_net.pt')
+fb_agent.policy_net.load_state_dict(policy_net_weights)
+fb_agent.target_net.load_state_dict(target_net_weights)
+fb_agent.eps = 0.05
 
+fb_agent.train(episodes=50, env=p)
+
+#gelb
+#red
