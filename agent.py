@@ -22,7 +22,23 @@ class Agent():
     It takes actions based on the epsilon greedy policy and trains the model using the DQN algorithm.
     """
 
-    def __init__(self, BATCH_SIZE: int, MEMORY_SIZE: int, GAMMA: float, input_dim: int, output_dim: int, action_dim: int, action_dict: dict, EPS_START: float, EPS_END: float, EPS_DECAY_VALUE: float, lr: float, TAU: float, network_type: str = 'DDQN', graph_saver=None, device=None, headless: bool = False) -> None:
+    def __init__(self, BATCH_SIZE: int,
+                 MEMORY_SIZE: int,
+                 GAMMA: float,
+                 input_dim: int,
+                 output_dim: int,
+                 action_dim: int,
+                 action_dict: dict,
+                 EPS_START: float,
+                 EPS_END: float,
+                 EPS_DECAY_VALUE: float,
+                 lr: float,
+                 TAU: float,
+                 network_type: str = 'DDQN',
+                 graph_saver=None,
+                 device=None,
+                 headless: bool = False,
+                 recording: bool = True) -> None:
         """Initialize the agent with the parameters needed to train the model
 
         Args:
@@ -42,6 +58,7 @@ class Agent():
             graph_saver (optional): The graph saver object to save the graphs. Defaults to None.
             device (optional): The device to use for training. Defaults to None.
             headless (bool, optional): Whether to run the game in headless mode. Defaults to False.
+            recording (bool, optional): Whether to record the game. Defaults to True.
         """
 
         # Set all the values up
@@ -57,6 +74,7 @@ class Agent():
         self.TAU = TAU
         self.graph_saver = graph_saver
         self.headless = headless
+        self.recording = recording
 
         #Select the GPU if we have one
         if device is None:
@@ -90,7 +108,8 @@ class Agent():
         self.clock = pg.time.Clock()
         sub = r'[<>:"/\\|?*]'
         filename = f"{os.path.basename(re.sub(sub, '_', start_time))}.avi"
-        self.recorder = ScreenRecorder(256, 256, self.FPS, os.path.join(savedir, filename))
+        if self.recording:
+            self.recorder = ScreenRecorder(256, 256, self.FPS, os.path.join(savedir, filename))
 
 
     @torch.no_grad()
@@ -234,7 +253,8 @@ class Agent():
                 self.optimize_model()
                 self.update_target_network()
                 pg.display.update()
-                self.recorder.capture_frame(env.getScreen())
+                if self.recording:
+                    self.recorder.capture_frame(env.getScreen())
 
                 if done:
                     #Update the number of durations for the episode
@@ -249,7 +269,8 @@ class Agent():
                     if reward_sum > 1300:
                         print('Solved!')
                         self.graph_saver.save_net(self)
-                        self.recorder.end_recording()
+                        if self.recording:
+                            self.recorder.end_recording()
                         return
                     if episode % 20 == 0 and not self.headless:
                             self.graph_saver.plot_graphs(self)
@@ -258,8 +279,8 @@ class Agent():
 
                     #Start a new episode
                     break
-
-        self.recorder.end_recording()
+        if self.recording:
+            self.recorder.end_recording()
 
 
 
