@@ -88,8 +88,7 @@ class Agent():
         self.steps_done = 0
         self.FPS = 30
         self.clock = pg.time.Clock()
-        self.recorder = ScreenRecorder(256, 256, self.FPS, os.path.join(
-            savedir, f'{os.path.basename(re.sub(r'[<>:"/\\|?*]', "_", start_time))}.avi'))
+        self.recorder = ScreenRecorder(256, 256, self.FPS, os.path.join(savedir, f"{os.path.basename(re.sub(r'[<>:"/\\|?*]', '_', start_time))}.avi"))
 
 
     @torch.no_grad()
@@ -245,6 +244,11 @@ class Agent():
                     #Plot them and save the networks
                     print(f'episode: {episode} | eps: {self.eps} | duration: {c+1} | reward: {reward_sum:.3f} | running time: {(time.time() - start_time):.3f}')
                     
+                    if reward_sum > 1300:
+                        print('Solved!')
+                        self.graph_saver.save_net(self)
+                        self.recorder.end_recording()
+                        return
                     if episode % 20 == 0 and not self.headless:
                             self.graph_saver.plot_graphs(self)
                     if episode % 100 == 0:
