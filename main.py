@@ -102,6 +102,7 @@ if __name__ == "__main__":
 
     parser.add_argument('-t', '--test', action='store_true', help='Test our model', dest='test')
     parser.add_argument('-e', '--episodes', type=int, help='Number of episodes to train the model. Defaults to 50', default=50)
+    parser.add_argument('-s', '--stop', type=int, help='Stop training if the model reaches this score.') 
     parser.add_argument('--headless', action='store_true', help='Run in headless mode (⚠️ Not properly tested)', dest='headless')
     parser.add_argument('--no-recording', action='store_true', help='Do not record the game', dest='no_recording')
     args = parser.parse_args()
@@ -144,7 +145,8 @@ if __name__ == "__main__":
         lr=1e-4,
         graph_saver=flappy_bird_plot_saver,
         headless=args.headless,
-        recording=not args.no_recording
+        recording=not args.no_recording,
+        stop_score=args.stop
     )
 
     if args.test:
@@ -158,5 +160,7 @@ if __name__ == "__main__":
     print(f"Training: {not args.test}")
     print(f"Headless: {args.headless}")
     print(f"Recording: {not args.no_recording}")
-    
+    print(f"Stop score: {args.stop}")
+    print(f"Network type: {fb_agent.network_type}")
+
     fb_agent.train(episodes=args.episodes, env=p)

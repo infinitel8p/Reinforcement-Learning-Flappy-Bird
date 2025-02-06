@@ -38,7 +38,9 @@ class Agent():
                  graph_saver=None,
                  device=None,
                  headless: bool = False,
-                 recording: bool = True) -> None:
+                 recording: bool = True,
+                 stop_score: int = None,    
+                 ) -> None:
         """Initialize the agent with the parameters needed to train the model
 
         Args:
@@ -59,6 +61,7 @@ class Agent():
             device (optional): The device to use for training. Defaults to None.
             headless (bool, optional): Whether to run the game in headless mode. Defaults to False.
             recording (bool, optional): Whether to record the game. Defaults to True.
+            stop_score (int, optional): The score to stop the training at. Defaults to None.
         """
 
         # Set all the values up
@@ -75,6 +78,7 @@ class Agent():
         self.graph_saver = graph_saver
         self.headless = headless
         self.recording = recording
+        self.stop_score = stop_score
 
         #Select the GPU if we have one
         if device is None:
@@ -142,7 +146,7 @@ class Agent():
     
     def plot_durations(self):
         """
-        Plot the durations of the episodes
+        Plot the graphs
         """
         if not self.headless:
             self.graph_saver.plot_graphs(self)
@@ -217,6 +221,7 @@ class Agent():
         """
 
         self.steps_done = 0
+        self.training_start_time = time.time()
 
         for episode in range(episodes):
             reward_sum = 0
@@ -262,18 +267,23 @@ class Agent():
                     self.episode_epsilons.append(self.eps)
                     self.episode_scores.append(env.score())
                     self.episode_rewards.append(reward_sum)
-                    
+
+                    # Calculate elapsed training time
+                    elapsed_time = int(time.time() - self.training_start_time)
+                    formatted_time = f"{elapsed_time // 3600:02}:{(elapsed_time % 3600) // 60:02}:{elapsed_time % 60:02}"
+
                     #Plot them and save the networks
-                    print(f'episode: {episode} | eps: {self.eps:.4f} | duration: {c+1} | reward: {reward_sum:.3f} | running time: {(time.time() - start_time):.3f}')
+                    print(f'episode: {episode} | eps: {self.eps:.4f} | duration: {c+1} | reward: {reward_sum:.3f} | running time: {(time.time() - start_time):.3f} | training for: {formatted_time}')
                     
-                    if reward_sum > 1300:
+                    if self.stop_score is not None and reward_sum >= self.stop_score:
                         print('Solved!')
+                        print('Ending training at reward:', reward_sum) 
                         self.graph_saver.save_net(self)
                         if self.recording:
                             self.recorder.end_recording()
                         return
-                    if episode % 20 == 0 and not self.headless:
-                            self.graph_saver.plot_graphs(self)
+                    if episode % 20 == 0:
+                        self.plot_durations()
                     if episode % 100 == 0:
                         self.graph_saver.save_net(self)
 
