@@ -72,6 +72,7 @@ The agent interacts with the game environment by selecting actions, observing th
 
 ### 4.1 Deep Q-Learning (DQL) Algorithm
 At the core of our approach lies the Q-Learning algorithm, which estimates the value of taking a particular action in a given state. The update rule for Q-learning is based on the Bellman equation:
+
 $$
 Q(s, a) = r + \gamma \max_{a'} Q(s', a')
 $$
@@ -103,18 +104,19 @@ For which we have:
     - **Advantage Stream**: Estimates the advantage of taking a specific action $A(s, a)$  
 
     The final Q-values are computed as:
-    $$
-    Q(s, a) = V(s) + \left( A(s, a) - \max_{a} A(s, a) \right)
-    $$
 
-    ```python
-    # V(s)
-    state_values = self.state_values(x)
-    # A(s, a)           
-    advantages = self.advantages(x)
-    # Q(s, a)
-    output = state_values + (advantages - torch.max(advantages, dim=1, keepdim=True)[0])
-    ```
+$$
+Q(s, a) = V(s) + \left( A(s, a) - \max_{a} A(s, a) \right)
+$$
+
+```python
+# V(s)
+state_values = self.state_values(x)
+# A(s, a)           
+advantages = self.advantages(x)
+# Q(s, a)
+output = state_values + (advantages - torch.max(advantages, dim=1, keepdim=True)[0])
+```
 
 ### 4.3 Training Process
 To stabilize training and improve sample efficiency, we implemented an experience replay buffer. This buffer stores past experiences in the form of tuples (as shown in [5.1](#51-data)).
