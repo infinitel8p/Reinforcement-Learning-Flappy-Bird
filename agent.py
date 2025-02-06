@@ -273,7 +273,7 @@ class Agent():
                     formatted_time = f"{elapsed_time // 3600:02}:{(elapsed_time % 3600) // 60:02}:{elapsed_time % 60:02}"
 
                     #Plot them and save the networks
-                    print(f'episode: {episode} | eps: {self.eps:.4f} | duration: {c+1} | reward: {reward_sum:.3f} | running time: {(time.time() - start_time):.3f} | training for: {formatted_time}')
+                    print(f'episode: {episode} | epsilon: {self.eps:.4f} | duration: {c+1} | reward: {reward_sum:.1f} | length: {(time.time() - start_time):.3f}s | training for: {formatted_time}')
                     
                     if self.stop_score is not None and reward_sum >= self.stop_score:
                         print('Solved!')
