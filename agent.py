@@ -264,7 +264,7 @@ class Agent():
                     self.episode_rewards.append(reward_sum)
                     
                     #Plot them and save the networks
-                    print(f'episode: {episode} | eps: {self.eps} | duration: {c+1} | reward: {reward_sum:.3f} | running time: {(time.time() - start_time):.3f}')
+                    print(f'episode: {episode} | eps: {self.eps:.4f} | duration: {c+1} | reward: {reward_sum:.3f} | running time: {(time.time() - start_time):.3f}')
                     
                     if reward_sum > 1300:
                         print('Solved!')

@@ -154,4 +154,9 @@ if __name__ == "__main__":
         fb_agent.target_net.load_state_dict(target_net_weights)
         fb_agent.eps = 0.05
     
+    print(f"Episodes: {args.episodes}")
+    print(f"Training: {not args.test}")
+    print(f"Headless: {args.headless}")
+    print(f"Recording: {not args.no_recording}")
+    
     fb_agent.train(episodes=args.episodes, env=p)
