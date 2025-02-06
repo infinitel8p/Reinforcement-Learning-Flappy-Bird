@@ -88,7 +88,9 @@ class Agent():
         self.steps_done = 0
         self.FPS = 30
         self.clock = pg.time.Clock()
-        self.recorder = ScreenRecorder(256, 256, self.FPS, os.path.join(savedir, f"{os.path.basename(re.sub(r'[<>:"/\\|?*]', '_', start_time))}.avi"))
+        sub = r'[<>:"/\\|?*]'
+        filename = f"{os.path.basename(re.sub(sub, '_', start_time))}.avi"
+        self.recorder = ScreenRecorder(256, 256, self.FPS, os.path.join(savedir, filename))
 
 
     @torch.no_grad()
