@@ -148,8 +148,8 @@ class Agent():
         """
         Plot the graphs
         """
-        if not self.headless:
-            self.graph_saver.plot_graphs(self)
+
+        self.graph_saver.plot_graphs(self)
 
     def update_target_network(self):
         """
